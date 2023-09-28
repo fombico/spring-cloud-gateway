@@ -321,6 +321,20 @@ public abstract class BeforeFilterFunctions {
 		};
 	}
 
+	public static Function<ServerRequest, ServerRequest> rewriteRequestParameter(String name, String replacement) {
+		return request -> {
+			MultiValueMap<String, String> queryParams = new LinkedMultiValueMap<>(request.params());
+			queryParams.replace(name, List.of(replacement));
+
+			// remove from uri
+			URI newUri = UriComponentsBuilder.fromUri(request.uri())
+					.replaceQueryParams(unmodifiableMultiValueMap(queryParams)).build().toUri();
+
+			// remove all params from request since they are already in newUri
+			return ServerRequest.from(request).params(Map::clear).uri(newUri).build();
+		};
+	}
+
 	public static Function<ServerRequest, ServerRequest> routeId(String routeId) {
 		return request -> {
 			MvcUtils.setRouteId(request, routeId);

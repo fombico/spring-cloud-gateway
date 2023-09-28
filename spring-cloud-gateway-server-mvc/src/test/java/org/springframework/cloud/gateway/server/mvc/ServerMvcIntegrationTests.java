@@ -94,6 +94,7 @@ import static org.springframework.cloud.gateway.server.mvc.filter.BeforeFilterFu
 import static org.springframework.cloud.gateway.server.mvc.filter.BeforeFilterFunctions.requestHeaderSize;
 import static org.springframework.cloud.gateway.server.mvc.filter.BeforeFilterFunctions.requestHeaderToRequestUri;
 import static org.springframework.cloud.gateway.server.mvc.filter.BeforeFilterFunctions.requestSize;
+import static org.springframework.cloud.gateway.server.mvc.filter.BeforeFilterFunctions.rewriteRequestParameter;
 import static org.springframework.cloud.gateway.server.mvc.filter.BeforeFilterFunctions.routeId;
 import static org.springframework.cloud.gateway.server.mvc.filter.Bucket4jFilterFunctions.rateLimit;
 import static org.springframework.cloud.gateway.server.mvc.filter.CircuitBreakerFilterFunctions.circuitBreaker;
@@ -483,6 +484,17 @@ public class ServerMvcIntegrationTests {
 	public void removeRequestParameterWorks() {
 		restClient.get().uri("/anything/removerequestparameter?foo=bar").header("test", "removerequestparam").exchange()
 				.expectStatus().isOk().expectHeader().doesNotExist("foo");
+	}
+
+	@Test
+	public void rewriteRequestParameterWorks() {
+		restClient.get().uri("/anything/rewriterequestparameter?campaign=old&color=blue&color=red")
+				.header("test", "rewriterequestparam").exchange().expectStatus().isOk().expectBody(Map.class)
+				.consumeWith(res -> {
+					Map<String, Object> args = getMap(res.getResponseBody(), "args");
+					assertThat(args).containsExactlyInAnyOrderEntriesOf(
+							Map.of("campaign", "fall2023", "color", List.of("blue", "red")));
+				});
 	}
 
 	@Test
@@ -913,6 +925,17 @@ public class ServerMvcIntegrationTests {
 							route("nested2").GET("/nested2", http())
 							.before(new HttpbinUriResolver())
 							.filter(addRequestHeader("X-Test", "nested2")).build()))
+					.build();
+			// @formatter:on
+		}
+
+		@Bean
+		public RouterFunction<ServerResponse> gatewayRouterFunctionsRewriteRequestParam() {
+			// @formatter:off
+			return route("rewriterequestparam")
+					.GET("/anything/rewriterequestparameter", header("test", "rewriterequestparam"), http())
+					.filter(new HttpbinUriResolver())
+					.before(rewriteRequestParameter("campaign", "fall2023"))
 					.build();
 			// @formatter:on
 		}

@@ -172,6 +172,12 @@ public interface FilterFunctions {
 	}
 
 	@Shortcut
+	static HandlerFilterFunction<ServerResponse, ServerResponse> rewriteRequestParameter(String name,
+			String replacement) {
+		return ofRequestProcessor(BeforeFilterFunctions.rewriteRequestParameter(name, replacement));
+	}
+
+	@Shortcut
 	static HandlerFilterFunction<ServerResponse, ServerResponse> rewriteResponseHeader(String name, String regexp,
 			String replacement) {
 		return ofResponseProcessor(AfterFilterFunctions.rewriteResponseHeader(name, regexp, replacement));
